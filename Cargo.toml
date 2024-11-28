@@ -13,4 +13,5 @@ rust-version = "1.70"
 
 [lints.clippy]
 missing_const_for_fn = "deny"
+uninlined_format_args = "deny"
 use_self = "deny"

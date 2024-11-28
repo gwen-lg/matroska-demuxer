@@ -1807,7 +1807,22 @@ fn parse_seek_head<R: Read + Seek>(
                 if let ElementData::Location { offset, size } = entry_data {
                     let seek_fields = collect_children(&mut file, *offset, *size)?;
                     if let Ok(seek_entry) = SeekEntry::new(&mut file, &seek_fields) {
-                        seek_head.insert(seek_entry.id, segment_data_offset + seek_entry.offset);
+                        if seek_entry.id == ElementId::SeekHead {
+                            assert!(seek_head.is_empty());
+                            file.seek(SeekFrom::Start(segment_data_offset + seek_entry.offset))?;
+                            let (element_id, element_data) = next_element(file)?;
+                            assert!(element_id == ElementId::SeekHead);
+                            println!("SeekHead : ID : {element_id:?} Data : `{element_data:?}`");
+                            return match element_data {
+                                ElementData::Location { offset, size } => {
+                                    parse_seek_head(file, segment_data_offset, Some((offset, size)))
+                                }
+                                _ => Err(DemuxError::CantFindCluster),
+                            };
+                        } else {
+                            seek_head
+                                .insert(seek_entry.id, segment_data_offset + seek_entry.offset);
+                        }
                     }
                 }
             }

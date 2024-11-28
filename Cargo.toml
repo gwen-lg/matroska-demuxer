@@ -12,4 +12,5 @@ edition = "2021"
 rust-version = "1.70"
 
 [lints.clippy]
+missing_const_for_fn = "deny"
 use_self = "deny"

@@ -11,3 +11,5 @@ keywords = ["matroska", "webm", "demuxer", "demux"]
 edition = "2021"
 rust-version = "1.70"
 
+[lints.clippy]
+use_self = "deny"

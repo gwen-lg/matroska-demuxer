@@ -1564,6 +1564,38 @@ impl<R: Read + Seek> MatroskaFile<R> {
         }
     }
 
+    ///HACK: to read subtitle duration
+    pub fn read_duration(&mut self) -> Option<u64> {
+        match next_element(&mut self.file) {
+            Ok((element_id, element_data)) => match element_id {
+                //
+                ElementId::BlockDuration => {
+                    if let ElementData::Unsigned(duration) = element_data {
+                        //TODO: convert duration in tick to timestamp ?
+                        Some(duration)
+                    } else {
+                        None
+                    }
+                }
+                _ => {
+                    eprintln!("TODO: need block duration");
+                    None
+                }
+            },
+            // If we encounter an IO error, we assume that there
+            // are no more blocks to handle (EOF).
+            Err(err) => {
+                if let Some(err) = err.source() {
+                    if err.downcast_ref::<std::io::Error>().is_some() {
+                        return None;
+                    }
+                }
+                eprintln!("TODO: should not happen ?");
+                None
+            }
+        }
+    }
+
     /// Read a frame that is left inside the block.
     fn try_pop_frame(&mut self, frame: &mut Frame) -> Result<bool> {
         if let Some(queued_frame) = self.queued_frames.pop_front() {

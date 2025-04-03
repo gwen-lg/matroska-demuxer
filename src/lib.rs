@@ -929,6 +929,7 @@ pub struct ContentEncoding {
     scope: u64,
     encoding_type: ContentEncodingType,
     encryption: Option<ContentEncryption>,
+    compression: Option<ContentCompression>,
 }
 
 impl<R: Read + Seek> ParsableElement<R> for ContentEncoding {
@@ -944,6 +945,8 @@ impl<R: Read + Seek> ParsableElement<R> for ContentEncoding {
             ContentEncodingType::Compression,
         )?;
 
+        let compression =
+            try_parse_child::<_, ContentCompression>(r, fields, ElementId::ContentCompression)?;
         let encryption =
             try_parse_child::<_, ContentEncryption>(r, fields, ElementId::ContentEncryption)?;
 
@@ -952,6 +955,7 @@ impl<R: Read + Seek> ParsableElement<R> for ContentEncoding {
             scope,
             encoding_type,
             encryption,
+            compression,
         })
     }
 }
@@ -979,9 +983,46 @@ impl ContentEncoding {
         self.encoding_type
     }
 
+    /// Settings describing the compression used.
+    pub fn compression(&self) -> Option<&ContentCompression> {
+        self.compression.as_ref()
+    }
+
     /// Settings describing the encryption used.
     pub fn encryption(&self) -> Option<&ContentEncryption> {
         self.encryption.as_ref()
+    }
+}
+
+/// Settings describing the compression used.
+#[derive(Clone, Debug)]
+pub struct ContentCompression {
+    algo: ContentCompAlgo,
+    comp_settings: Option<Vec<u8>>, //TODO: correct ?
+}
+
+impl<R: Read + Seek> ParsableElement<R> for ContentCompression {
+    type Output = Self;
+
+    fn new(r: &mut R, fields: &[(ElementId, ElementData)]) -> Result<Self> {
+        let algo =
+            try_find_custom_type_or(fields, ElementId::ContentCompAlgo, ContentCompAlgo::Zlib)?;
+        let comp_settings = try_find_binary(r, fields, ElementId::ContentCompSettings)?;
+        Ok(Self {
+            algo,
+            comp_settings,
+        })
+    }
+}
+
+impl ContentCompression {
+    /// The compression algorithm used.
+    pub fn algo(&self) -> ContentCompAlgo {
+        self.algo
+    }
+    /// The compression settings.
+    pub fn settings(&self) -> Option<&[u8]> {
+        self.comp_settings.as_deref()
     }
 }
 
